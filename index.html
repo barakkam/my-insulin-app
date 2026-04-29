@@ -387,19 +387,40 @@ function startTimer() {
 async function searchTreatments() {
   var query = document.getElementById('searchInput').value.trim();
   if (!query) return;
+
   var container = document.getElementById('treatmentsContainer');
   container.innerHTML = '<div class="empty-state"><span class="loader"></span> מחפש...</div>';
   document.getElementById('recommendBox').classList.remove('show');
-  var encoded = encodeURIComponent(query);
-  var data = await fetchFromNightscout('/api/v1/treatments.json?find[notes][$regex]=' + encoded + '&count=5&sort%5BcreatedAt%5D=-1');
+
+  // שולפים 50 טיפולים אחרונים בלי Regex בURL
+  var data = await fetchFromNightscout('/api/v1/treatments.json?count=50');
+
   if (!data || data.length === 0) {
+    container.innerHTML = '<div class="empty-state"><span class="emoji">🤷</span>לא נמצאו טיפולים בכלל</div>';
+    return;
+  }
+
+  // סינון בצד הלקוח — תומך בעברית, אימוג'ים, רישיות
+  var queryLower = query.toLowerCase();
+  var filtered = data.filter(function(t) {
+    var notes = (t.notes || t.Notes || '').toLowerCase();
+    return notes.includes(queryLower);
+  });
+
+  if (filtered.length === 0) {
     container.innerHTML = '<div class="empty-state"><span class="emoji">🤷</span>לא נמצאו ארוחות עם "' + query + '"</div>';
     return;
   }
+
+  // חישוב המלצה
   var totalRatios = 0, validCount = 0;
-  data.forEach(function(t) {
-    if (t.carbs && t.insulin && t.insulin > 0) { totalRatios += t.carbs / t.insulin; validCount++; }
+  filtered.forEach(function(t) {
+    if (t.carbs && t.insulin && t.insulin > 0) {
+      totalRatios += t.carbs / t.insulin;
+      validCount++;
+    }
   });
+
   if (validCount > 0) {
     var avgRatio = (totalRatios / validCount).toFixed(1);
     var carbs = parseFloat(document.getElementById('carbInput').value) || 50;
@@ -407,18 +428,30 @@ async function searchTreatments() {
     document.getElementById('avgRatio').textContent = avgRatio;
     document.getElementById('recCarbs').textContent = carbs;
     document.getElementById('recDose').textContent = dose;
-    document.getElementById('recommendNote').textContent = 'מבוסס על ' + validCount + ' ארוחות בהיסטוריה שלך';
+    document.getElementById('recommendNote').textContent =
+      'מבוסס על ' + validCount + ' ארוחות בהיסטוריה שלך';
     document.getElementById('recommendBox').classList.add('show');
   }
-  var html = '<table class="treatments-table"><thead><tr><th>תאריך</th><th>פחמימות</th><th>אינסולין</th><th>יחס</th></tr></thead><tbody>';
-  data.forEach(function(t) {
+
+  // בניית טבלה (עד 5 תוצאות)
+  var html = '<table class="treatments-table"><thead><tr>' +
+    '<th>תאריך</th><th>פחמימות</th><th>אינסולין</th><th>יחס</th>' +
+    '</tr></thead><tbody>';
+
+  filtered.slice(0, 5).forEach(function(t) {
     var d = new Date(t.created_at || t.createdAt);
-    var ds = d.toLocaleDateString('he-IL', {day:'2-digit', month:'2-digit', year:'2-digit'});
-    var carbs = t.carbs || '--';
+    var ds = d.toLocaleDateString('he-IL', { day:'2-digit', month:'2-digit', year:'2-digit' });
+    var carbs   = t.carbs  || '--';
     var insulin = t.insulin ? t.insulin.toFixed(1) : '--';
-    var ratio = (t.carbs && t.insulin) ? (t.carbs / t.insulin).toFixed(1) : '--';
-    html += '<tr><td style="font-size:.8rem;color:var(--muted)">' + ds + '</td><td><span class="carb-badge">' + carbs + 'ג\'</span></td><td><span class="insulin-badge">' + insulin + 'U</span></td><td style="color:var(--accent3);font-weight:700">' + ratio + '</td></tr>';
+    var ratio   = (t.carbs && t.insulin) ? (t.carbs / t.insulin).toFixed(1) : '--';
+    html += '<tr>' +
+      '<td style="font-size:.8rem;color:var(--muted)">' + ds + '</td>' +
+      '<td><span class="carb-badge">' + carbs + 'ג\'</span></td>' +
+      '<td><span class="insulin-badge">' + insulin + 'U</span></td>' +
+      '<td style="color:var(--accent3);font-weight:700">' + ratio + '</td>' +
+      '</tr>';
   });
+
   html += '</tbody></table>';
   container.innerHTML = html;
 }
