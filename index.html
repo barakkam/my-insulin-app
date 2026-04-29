@@ -1,1499 +1,449 @@
 <!DOCTYPE html>
-<html lang="he" dir="ltr">
+<html lang="he" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#0d1117">
-<title>DiaBuddy 🩸 — T1D Manager</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>מנהל הסוכר שלי</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Sora:wght@300;400;600;700;800&display=swap" rel="stylesheet">
-
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&family=Rubik:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
-:root {
-  --bg: #0d1117;
-  --surface: #161b22;
-  --surface2: #1e2530;
-  --surface3: #262d3a;
-  --border: rgba(255,255,255,0.08);
-  --text: #e6edf3;
-  --muted: #7d8590;
-  --accent: #58a6ff;
-  --accent2: #3fb950;
-  --warn: #f0883e;
-  --danger: #f85149;
-  --purple: #bc8cff;
-  --teal: #39d0d8;
-  --glucose-low: #f85149;
-  --glucose-ok: #3fb950;
-  --glucose-high: #f0883e;
-  --glucose-vhigh: #f85149;
-  --radius: 16px;
-  --radius-sm: 10px;
-  --shadow: 0 8px 32px rgba(0,0,0,0.4);
-}
-
-* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-
-body {
-  font-family: 'Sora', sans-serif;
-  background: var(--bg);
-  color: var(--text);
-  min-height: 100vh;
-  overflow-x: hidden;
-  -webkit-font-smoothing: antialiased;
-}
-
-/* ── Background mesh ── */
-body::before {
-  content: '';
-  position: fixed; inset: 0;
-  background: 
-    radial-gradient(ellipse 80% 60% at 20% 10%, rgba(88,166,255,0.06) 0%, transparent 60%),
-    radial-gradient(ellipse 60% 80% at 80% 90%, rgba(63,185,80,0.05) 0%, transparent 60%);
-  pointer-events: none; z-index: 0;
-}
-
-/* ── Layout ── */
-#app { position: relative; z-index: 1; max-width: 480px; margin: 0 auto; padding: 0 0 100px; }
-
-/* ── Header ── */
-.header {
-  position: sticky; top: 0; z-index: 100;
-  background: rgba(13,17,23,0.85);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-bottom: 1px solid var(--border);
-  padding: 12px 20px;
-  display: flex; align-items: center; justify-content: space-between;
-}
-.header-title { font-size: 18px; font-weight: 700; letter-spacing: -0.3px; }
-.header-title span { color: var(--accent); }
-.header-right { display: flex; align-items: center; gap: 10px; }
-.connection-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); transition: background 0.3s; }
-.connection-dot.ok { background: var(--accent2); box-shadow: 0 0 8px var(--accent2); }
-.connection-dot.error { background: var(--danger); }
-.settings-btn { background: var(--surface2); border: 1px solid var(--border); color: var(--text); border-radius: 8px; padding: 6px 10px; font-size: 16px; cursor: pointer; }
-
-/* ── Tabs ── */
-.tabs {
-  display: flex; gap: 4px;
-  padding: 12px 16px 0;
-  overflow-x: auto; scrollbar-width: none;
-}
-.tabs::-webkit-scrollbar { display: none; }
-.tab {
-  flex-shrink: 0;
-  padding: 8px 16px; border-radius: 100px;
-  font-size: 13px; font-weight: 600;
-  background: var(--surface2); border: 1px solid var(--border);
-  color: var(--muted); cursor: pointer;
-  transition: all 0.2s;
-}
-.tab.active { background: var(--accent); border-color: var(--accent); color: #0d1117; }
-
-/* ── Panels ── */
-.panel { display: none; padding: 16px; animation: fadeUp 0.3s ease; }
-.panel.active { display: block; }
-@keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
-
-/* ── Card ── */
-.card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 18px;
-  margin-bottom: 14px;
-  box-shadow: var(--shadow);
-}
-.card-title {
-  font-size: 11px; font-weight: 600; letter-spacing: 1.2px;
-  color: var(--muted); text-transform: uppercase; margin-bottom: 14px;
-}
-
-/* ── Glucose display ── */
-.glucose-main {
-  display: flex; align-items: flex-end; gap: 10px;
-  margin-bottom: 4px;
-}
-.glucose-value {
-  font-family: 'DM Mono', monospace;
-  font-size: 72px; font-weight: 500; line-height: 1;
-  letter-spacing: -2px;
-}
-.glucose-value.low { color: var(--glucose-low); }
-.glucose-value.in-range { color: var(--glucose-ok); }
-.glucose-value.high { color: var(--glucose-high); }
-.glucose-value.very-high { color: var(--glucose-vhigh); }
-.glucose-trend { font-size: 32px; margin-bottom: 8px; }
-.glucose-delta {
-  font-family: 'DM Mono', monospace;
-  font-size: 16px; color: var(--muted);
-  margin-bottom: 10px;
-}
-.glucose-meta { display: flex; gap: 16px; flex-wrap: wrap; }
-.glucose-badge {
-  background: var(--surface2); border: 1px solid var(--border);
-  border-radius: 8px; padding: 6px 12px;
-  font-size: 13px; display: flex; align-items: center; gap: 6px;
-}
-.glucose-badge .label { color: var(--muted); font-size: 11px; }
-.glucose-badge .val { font-weight: 600; font-family: 'DM Mono', monospace; }
-.last-update { font-size: 11px; color: var(--muted); margin-top: 10px; }
-
-/* ── Mini chart ── */
-.chart-wrap { margin-top: 14px; }
-canvas.glucose-chart { width: 100%; height: 100px; display: block; }
-
-/* ── Forms ── */
-.field { margin-bottom: 14px; }
-.field label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 6px; letter-spacing: 0.5px; }
-.field input, .field select, .field textarea {
-  width: 100%; background: var(--surface2);
-  border: 1px solid var(--border); border-radius: var(--radius-sm);
-  color: var(--text); font-family: 'Sora', sans-serif; font-size: 15px;
-  padding: 12px 14px; outline: none; transition: border 0.2s;
-}
-.field input:focus, .field select:focus { border-color: var(--accent); }
-.field input[type=number] { font-family: 'DM Mono', monospace; font-size: 20px; font-weight: 500; }
-.field select option { background: var(--surface2); }
-
-/* ── Buttons ── */
-.btn {
-  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-  padding: 14px 20px; border-radius: var(--radius-sm);
-  font-family: 'Sora', sans-serif; font-size: 15px; font-weight: 600;
-  cursor: pointer; border: none; transition: all 0.2s; width: 100%;
-}
-.btn-primary { background: var(--accent); color: #0d1117; }
-.btn-primary:hover { background: #79c0ff; transform: translateY(-1px); box-shadow: 0 4px 16px rgba(88,166,255,0.3); }
-.btn-primary:active { transform: translateY(0); }
-.btn-secondary { background: var(--surface2); border: 1px solid var(--border); color: var(--text); }
-.btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
-.btn-danger { background: rgba(248,81,73,0.15); border: 1px solid rgba(248,81,73,0.3); color: var(--danger); }
-.btn-sm { padding: 8px 14px; font-size: 13px; width: auto; }
-.btn-icon { width: 40px; height: 40px; padding: 0; border-radius: 10px; }
-
-/* ── Dose result ── */
-.dose-result {
-  text-align: center; padding: 24px;
-  background: linear-gradient(135deg, rgba(88,166,255,0.1), rgba(63,185,80,0.05));
-  border: 1px solid rgba(88,166,255,0.2);
-  border-radius: var(--radius); margin-bottom: 14px;
-  animation: popIn 0.3s cubic-bezier(0.34,1.56,0.64,1);
-}
-@keyframes popIn { from { transform:scale(0.9); opacity:0; } to { transform:scale(1); opacity:1; } }
-.dose-result .dose-label { font-size: 12px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 4px; }
-.dose-result .dose-num {
-  font-family: 'DM Mono', monospace; font-size: 56px; font-weight: 500;
-  color: var(--accent); line-height: 1; letter-spacing: -2px;
-}
-.dose-result .dose-unit { font-size: 18px; color: var(--muted); }
-.dose-split { display: flex; gap: 10px; margin-top: 14px; }
-.split-pill {
-  flex: 1; background: var(--surface2); border: 1px solid var(--border);
-  border-radius: 12px; padding: 10px; text-align: center;
-}
-.split-pill .sp-label { font-size: 11px; color: var(--muted); }
-.split-pill .sp-val { font-family: 'DM Mono', monospace; font-size: 22px; font-weight: 500; color: var(--purple); }
-
-/* ── Toggle row ── */
-.toggle-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
-.toggle-chip {
-  flex: 1; min-width: 120px;
-  background: var(--surface2); border: 1.5px solid var(--border);
-  border-radius: 10px; padding: 10px 12px;
-  display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
-  cursor: pointer; transition: all 0.2s;
-}
-.toggle-chip.active.pod { border-color: var(--teal); background: rgba(57,208,216,0.08); }
-.toggle-chip.active.exercise { border-color: var(--accent2); background: rgba(63,185,80,0.08); }
-.toggle-chip .chip-icon { font-size: 18px; }
-.toggle-chip .chip-label { font-size: 12px; font-weight: 600; }
-.toggle-chip .chip-sub { font-size: 10px; color: var(--muted); }
-
-/* ── Adjustments bar ── */
-.adjustments-bar {
-  display: flex; gap: 8px; align-items: center;
-  background: var(--surface2); border: 1px solid var(--border);
-  border-radius: 10px; padding: 10px 14px; margin-bottom: 14px; flex-wrap: wrap;
-}
-.adj-item { font-size: 12px; display: flex; gap: 4px; align-items: center; }
-.adj-item .adj-dot { width: 6px; height: 6px; border-radius: 50%; }
-
-/* ── Split timer ── */
-.split-timer {
-  background: linear-gradient(135deg, rgba(188,140,255,0.1), rgba(57,208,216,0.05));
-  border: 1px solid rgba(188,140,255,0.25);
-  border-radius: var(--radius); padding: 18px; margin-bottom: 14px;
-  display: none;
-}
-.split-timer.active { display: block; animation: fadeUp 0.3s ease; }
-.split-timer-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-.split-timer-title { font-weight: 700; color: var(--purple); }
-.timer-countdown {
-  font-family: 'DM Mono', monospace; font-size: 42px; font-weight: 500;
-  text-align: center; color: var(--purple); letter-spacing: -1px;
-}
-.timer-progress { height: 4px; background: var(--surface2); border-radius: 2px; margin-top: 10px; overflow: hidden; }
-.timer-progress-fill { height: 100%; background: var(--purple); border-radius: 2px; transition: width 1s linear; }
-.split-remind-dose { font-size: 13px; color: var(--muted); text-align: center; margin-top: 8px; }
-
-/* ── Meal suggestions ── */
-.suggestions {
-  background: var(--surface2); border: 1px solid var(--border);
-  border-radius: var(--radius-sm); overflow: hidden;
-  margin-top: -8px; margin-bottom: 14px;
-  display: none;
-}
-.suggestions.show { display: block; }
-.suggestion-item {
-  padding: 10px 14px; cursor: pointer; transition: background 0.15s;
-  display: flex; justify-content: space-between; align-items: center;
-  border-bottom: 1px solid var(--border);
-  font-size: 14px;
-}
-.suggestion-item:last-child { border-bottom: none; }
-.suggestion-item:hover { background: var(--surface3); }
-.suggestion-meta { font-size: 11px; color: var(--muted); }
-.tir-badge {
-  font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px;
-  background: rgba(63,185,80,0.15); color: var(--accent2);
-}
-
-/* ── History ── */
-.history-item {
-  display: flex; gap: 12px; align-items: flex-start;
-  padding: 14px 0; border-bottom: 1px solid var(--border);
-}
-.history-item:last-child { border-bottom: none; }
-.history-icon { font-size: 24px; flex-shrink: 0; }
-.history-body { flex: 1; }
-.history-name { font-weight: 600; font-size: 15px; margin-bottom: 3px; }
-.history-meta { font-size: 12px; color: var(--muted); display: flex; gap: 10px; flex-wrap: wrap; }
-.history-dose { font-family: 'DM Mono', monospace; font-size: 16px; font-weight: 500; color: var(--accent); }
-.history-date { font-size: 11px; color: var(--muted); text-align: right; flex-shrink: 0; }
-
-/* ── Insights ── */
-.insight-card {
-  border-radius: var(--radius); padding: 16px; margin-bottom: 12px;
-  border: 1px solid;
-}
-.insight-card.warning { background: rgba(240,136,62,0.08); border-color: rgba(240,136,62,0.3); }
-.insight-card.info { background: rgba(88,166,255,0.08); border-color: rgba(88,166,255,0.2); }
-.insight-card.success { background: rgba(63,185,80,0.08); border-color: rgba(63,185,80,0.2); }
-.insight-header { display: flex; gap: 10px; align-items: center; margin-bottom: 8px; }
-.insight-icon { font-size: 22px; }
-.insight-title { font-weight: 700; font-size: 15px; }
-.insight-body { font-size: 13px; color: var(--muted); line-height: 1.6; }
-.insight-action {
-  margin-top: 10px; font-size: 12px; font-weight: 700;
-  padding: 6px 12px; border-radius: 6px; display: inline-block;
-}
-.insight-card.warning .insight-action { background: rgba(240,136,62,0.15); color: var(--warn); }
-.insight-card.info .insight-action { background: rgba(88,166,255,0.15); color: var(--accent); }
-.insight-card.success .insight-action { background: rgba(63,185,80,0.15); color: var(--accent2); }
-
-/* ── Settings ── */
-.settings-section { margin-bottom: 20px; }
-.settings-section-title { font-size: 11px; font-weight: 700; letter-spacing: 1.2px; color: var(--muted); text-transform: uppercase; margin-bottom: 10px; }
-.settings-row {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 12px 0; border-bottom: 1px solid var(--border);
-}
-.settings-row:last-child { border-bottom: none; }
-.settings-label { font-size: 14px; }
-.settings-sub { font-size: 11px; color: var(--muted); margin-top: 1px; }
-
-/* ── Modal ── */
-.modal-overlay {
-  position: fixed; inset: 0; z-index: 200;
-  background: rgba(0,0,0,0.7); backdrop-filter: blur(8px);
-  display: flex; align-items: flex-end; justify-content: center;
-  opacity: 0; pointer-events: none; transition: opacity 0.2s;
-}
-.modal-overlay.open { opacity: 1; pointer-events: all; }
-.modal {
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: 24px 24px 0 0; padding: 24px;
-  width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto;
-  transform: translateY(30px); transition: transform 0.3s cubic-bezier(0.34,1.1,0.64,1);
-}
-.modal-overlay.open .modal { transform: translateY(0); }
-.modal-handle { width: 40px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 20px; }
-.modal-title { font-size: 20px; font-weight: 700; margin-bottom: 20px; }
-
-/* ── Alert ── */
-.alert {
-  padding: 12px 16px; border-radius: var(--radius-sm); margin-bottom: 14px;
-  font-size: 13px; display: flex; gap: 10px; align-items: flex-start;
-}
-.alert.error { background: rgba(248,81,73,0.1); border: 1px solid rgba(248,81,73,0.25); color: var(--danger); }
-.alert.success { background: rgba(63,185,80,0.1); border: 1px solid rgba(63,185,80,0.25); color: var(--accent2); }
-.alert.info { background: rgba(88,166,255,0.1); border: 1px solid rgba(88,166,255,0.2); color: var(--accent); }
-
-/* ── Loading ── */
-.skeleton { background: linear-gradient(90deg, var(--surface2) 25%, var(--surface3) 50%, var(--surface2) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 8px; }
-@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
-.spinner { width: 20px; height: 20px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
-
-/* ── Bottom Nav ── */
-.bottom-nav {
-  position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
-  max-width: 480px; margin: 0 auto;
-  background: rgba(22,27,34,0.95); backdrop-filter: blur(20px);
-  border-top: 1px solid var(--border);
-  display: flex;
-  padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
-}
-.nav-item {
-  flex: 1; display: flex; flex-direction: column; align-items: center;
-  gap: 3px; padding: 6px; border-radius: 10px;
-  cursor: pointer; transition: all 0.2s; color: var(--muted);
-  font-size: 10px; font-weight: 600; letter-spacing: 0.3px;
-}
-.nav-item .nav-icon { font-size: 20px; transition: transform 0.2s; }
-.nav-item.active { color: var(--accent); }
-.nav-item.active .nav-icon { transform: scale(1.15); }
-
-/* ── Range indicator ── */
-.range-bar { height: 6px; background: var(--surface2); border-radius: 3px; overflow: hidden; margin-top: 10px; display: flex; }
-.range-low { background: var(--glucose-low); }
-.range-in { background: var(--accent2); }
-.range-high { background: var(--glucose-high); }
-
-/* ── Carb presets ── */
-.presets-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
-.preset-btn {
-  background: var(--surface2); border: 1px solid var(--border);
-  border-radius: 10px; padding: 10px 6px; text-align: center;
-  cursor: pointer; transition: all 0.2s;
-}
-.preset-btn:hover { border-color: var(--accent); }
-.preset-btn .preset-icon { font-size: 20px; }
-.preset-btn .preset-name { font-size: 10px; color: var(--muted); margin-top: 2px; }
-.preset-btn .preset-carbs { font-family: 'DM Mono', monospace; font-size: 13px; font-weight: 500; color: var(--accent); }
-
-/* ── Profile display ── */
-.profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.profile-stat { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 12px; }
-.profile-stat .ps-label { font-size: 10px; color: var(--muted); letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 4px; }
-.profile-stat .ps-val { font-family: 'DM Mono', monospace; font-size: 20px; font-weight: 500; }
+:root{--bg:#0f1117;--surface:#1a1d2e;--surface2:#252840;--accent:#7c6af7;--accent2:#f7826a;--accent3:#6af7c8;--text:#f0f0fa;--muted:#8888aa;--low:#ff4f6a;--ok:#4fdb9a;--high:#ffd166;--radius:20px;--shadow:0 8px 32px rgba(0,0,0,.4)}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:'Rubik',sans-serif;min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;top:-200px;left:-200px;width:600px;height:600px;background:radial-gradient(circle,rgba(124,106,247,.15) 0%,transparent 70%);pointer-events:none;z-index:0}
+body::after{content:'';position:fixed;bottom:-200px;right:-200px;width:500px;height:500px;background:radial-gradient(circle,rgba(106,247,200,.1) 0%,transparent 70%);pointer-events:none;z-index:0}
+.app{position:relative;z-index:1;max-width:480px;margin:0 auto;padding:16px}
+.header{display:flex;align-items:center;justify-content:space-between;padding:16px 0 24px}
+.header h1{font-family:'Nunito',sans-serif;font-size:1.5rem;font-weight:900;background:linear-gradient(135deg,var(--accent),var(--accent3));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.settings-btn{background:var(--surface2);border:none;color:var(--muted);width:44px;height:44px;border-radius:14px;font-size:1.3rem;cursor:pointer;transition:all .2s}
+.settings-btn:hover{background:var(--accent);color:#fff}
+.card{background:var(--surface);border-radius:var(--radius);padding:20px;margin-bottom:16px;box-shadow:var(--shadow);border:1px solid rgba(255,255,255,.05);animation:slideUp .4s ease both}
+@keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.card-title{font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.live-card{background:linear-gradient(135deg,#1a1d2e,#1e2240);text-align:center;padding:28px 20px}
+.sgv-value{font-family:'Nunito',sans-serif;font-size:5rem;font-weight:900;line-height:1;transition:color .5s}
+.sgv-value.low{color:var(--low);text-shadow:0 0 30px rgba(255,79,106,.4)}
+.sgv-value.ok{color:var(--ok);text-shadow:0 0 30px rgba(79,219,154,.4)}
+.sgv-value.high{color:var(--high);text-shadow:0 0 30px rgba(255,209,102,.4)}
+.sgv-trend{font-size:2.5rem}
+.sgv-meta{display:flex;justify-content:center;gap:24px;margin-top:16px}
+.meta-item{text-align:center}
+.meta-label{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+.meta-value{font-size:1.1rem;font-weight:700;color:var(--text)}
+.refresh-row{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:16px}
+.last-update{font-size:.75rem;color:var(--muted)}
+.refresh-btn{background:var(--surface2);border:none;color:var(--accent3);padding:6px 14px;border-radius:20px;font-size:.75rem;cursor:pointer;font-family:'Rubik',sans-serif;transition:all .2s}
+.refresh-btn:hover{background:var(--accent3);color:var(--bg)}
+.spinning{animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.input-group{display:flex;gap:10px;margin-bottom:14px}
+.input-group label{display:block;font-size:.75rem;color:var(--muted);margin-bottom:6px}
+.input-wrap{flex:1}
+input[type=number],input[type=text],input[type=password]{width:100%;background:var(--surface2);border:2px solid transparent;border-radius:14px;color:var(--text);font-family:'Rubik',sans-serif;font-size:1.1rem;font-weight:700;padding:14px 16px;outline:none;transition:border .2s}
+input:focus{border-color:var(--accent)}
+.ratio-row{display:flex;gap:8px;margin-bottom:16px}
+.ratio-btn{flex:1;background:var(--surface2);border:2px solid transparent;border-radius:12px;color:var(--muted);padding:10px;font-size:.8rem;font-family:'Rubik',sans-serif;cursor:pointer;transition:all .2s;text-align:center}
+.ratio-btn.active{border-color:var(--accent);color:var(--text);background:rgba(124,106,247,.15)}
+.split-result{background:var(--surface2);border-radius:16px;padding:16px;margin-bottom:14px;display:none}
+.split-result.show{display:block}
+.split-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0}
+.split-row:not(:last-child){border-bottom:1px solid rgba(255,255,255,.06)}
+.split-label{font-size:.85rem;color:var(--muted)}
+.split-val{font-size:1.3rem;font-weight:900;font-family:'Nunito',sans-serif}
+.split-val.part1{color:var(--accent)}
+.split-val.part2{color:var(--accent2)}
+.btn{width:100%;padding:16px;border:none;border-radius:16px;font-family:'Nunito',sans-serif;font-size:1rem;font-weight:800;cursor:pointer;transition:all .2s;letter-spacing:.5px}
+.btn-primary{background:linear-gradient(135deg,var(--accent),#9b87ff);color:#fff}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(124,106,247,.4)}
+.btn-timer{background:linear-gradient(135deg,var(--accent2),#ff9f7a);color:#fff;margin-top:10px;display:none}
+.btn-timer.show{display:block}
+.timer-display{text-align:center;background:rgba(247,130,106,.1);border:2px solid var(--accent2);border-radius:16px;padding:16px;margin-top:12px;display:none}
+.timer-display.show{display:block}
+.timer-count{font-family:'Nunito',sans-serif;font-size:2.5rem;font-weight:900;color:var(--accent2)}
+.timer-label{font-size:.8rem;color:var(--muted)}
+.search-row{display:flex;gap:10px;margin-bottom:16px}
+.btn-search{background:linear-gradient(135deg,var(--accent3),#4fc9a0);color:var(--bg);font-weight:800;border:none;border-radius:14px;padding:0 20px;font-size:1.2rem;cursor:pointer;transition:all .2s}
+.btn-search:hover{transform:scale(1.05)}
+.recommend-box{background:linear-gradient(135deg,rgba(106,247,200,.1),rgba(124,106,247,.1));border:1px solid rgba(106,247,200,.3);border-radius:16px;padding:16px;margin-bottom:14px;display:none}
+.recommend-box.show{display:block}
+.recommend-title{font-size:.75rem;color:var(--accent3);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+.recommend-val{font-family:'Nunito',sans-serif;font-size:2rem;font-weight:900;color:var(--text)}
+.recommend-note{font-size:.8rem;color:var(--muted);margin-top:4px}
+.treatments-table{width:100%;border-collapse:collapse;font-size:.85rem}
+.treatments-table th{color:var(--muted);font-weight:600;text-align:right;padding:8px 6px;border-bottom:1px solid rgba(255,255,255,.08);font-size:.75rem;text-transform:uppercase;letter-spacing:1px}
+.treatments-table td{padding:10px 6px;border-bottom:1px solid rgba(255,255,255,.05);vertical-align:middle}
+.treatments-table tr:last-child td{border-bottom:none}
+.carb-badge{background:rgba(247,130,106,.2);color:var(--accent2);border-radius:8px;padding:2px 8px;font-weight:700}
+.insulin-badge{background:rgba(124,106,247,.2);color:var(--accent);border-radius:8px;padding:2px 8px;font-weight:700}
+.empty-state{text-align:center;padding:24px;color:var(--muted);font-size:.9rem}
+.empty-state .emoji{font-size:2rem;display:block;margin-bottom:8px}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px)}
+.modal-overlay.show{display:flex}
+.modal{background:var(--surface);border-radius:28px 28px 0 0;padding:24px;width:100%;max-width:480px;animation:slideModal .3s ease;border-top:1px solid rgba(255,255,255,.1)}
+@keyframes slideModal{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal-title{font-family:'Nunito',sans-serif;font-size:1.3rem;font-weight:900;margin-bottom:20px}
+.field-group{margin-bottom:16px}
+.field-group label{display:block;font-size:.75rem;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:1px}
+.save-indicator{font-size:.8rem;color:var(--accent3);text-align:center;margin-top:8px;height:20px}
+.status-dot{width:8px;height:8px;border-radius:50%;background:var(--muted);display:inline-block;margin-left:4px}
+.status-dot.connected{background:var(--ok);box-shadow:0 0 8px var(--ok);animation:pulse 2s infinite}
+.status-dot.error{background:var(--low)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.loader{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.1);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;vertical-align:middle;margin-left:6px}
+.tabs{display:flex;background:var(--surface);border-radius:16px;padding:4px;margin-bottom:16px;gap:4px}
+.tab{flex:1;background:none;border:none;color:var(--muted);padding:10px 4px;border-radius:12px;font-size:.75rem;font-family:'Rubik',sans-serif;font-weight:600;cursor:pointer;transition:all .2s;text-align:center}
+.tab.active{background:var(--surface2);color:var(--text)}
+.tab-icon{display:block;font-size:1.2rem;margin-bottom:2px}
+.tab-content{display:none}
+.tab-content.active{display:block}
+.iob-bar-wrap{background:var(--surface2);border-radius:10px;height:8px;margin-top:8px;overflow:hidden}
+.iob-bar{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent3));border-radius:10px;transition:width .6s ease}
 </style>
 </head>
 <body>
+<div class="app">
+  <div class="header">
+    <h1>🩸 מנהל הסוכר שלי</h1>
+    <button class="settings-btn" onclick="openSettings()">⚙️</button>
+  </div>
 
-<div id="app">
-  <!-- Header -->
-  <header class="header">
-    <div class="header-title">Dia<span>Buddy</span> 🩸</div>
-    <div class="header-right">
-      <div class="connection-dot" id="connDot"></div>
-      <button class="settings-btn" onclick="openSettings()">⚙️</button>
-    </div>
-  </header>
-
-  <!-- Tabs -->
   <div class="tabs">
-    <div class="tab active" onclick="showPanel('home',this)">🏠 Home</div>
-    <div class="tab" onclick="showPanel('bolus',this)">💉 Bolus</div>
-    <div class="tab" onclick="showPanel('history',this)">📋 History</div>
-    <div class="tab" onclick="showPanel('insights',this)">🔍 Insights</div>
+    <button class="tab active" onclick="switchTab('live',this)"><span class="tab-icon">📊</span>סוכר חי</button>
+    <button class="tab" onclick="switchTab('calc',this)"><span class="tab-icon">💉</span>מחשבון</button>
+    <button class="tab" onclick="switchTab('history',this)"><span class="tab-icon">🔍</span>היסטוריה</button>
   </div>
 
-  <!-- ── HOME PANEL ── -->
-  <div class="panel active" id="panel-home">
-    <div id="alert-area"></div>
+  <div id="tab-live" class="tab-content active">
+    <div class="card live-card">
+      <div class="card-title"><span class="status-dot" id="statusDot"></span><span>📡</span> סוכר בזמן אמת</div>
+      <div class="sgv-value ok" id="sgvValue">--</div>
+      <div class="sgv-trend" id="sgvTrend">↔</div>
+      <div style="font-size:.8rem;color:var(--muted);margin-top:4px" id="sgvTime">טוען...</div>
+      <div class="sgv-meta">
+        <div class="meta-item">
+          <div class="meta-label">IOB 💉</div>
+          <div class="meta-value" id="iobValue">--</div>
+          <div class="iob-bar-wrap"><div class="iob-bar" id="iobBar" style="width:0%"></div></div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">δ שינוי</div>
+          <div class="meta-value" id="deltaValue">--</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">תאריך</div>
+          <div class="meta-value" id="dateValue">--</div>
+        </div>
+      </div>
+      <div class="refresh-row">
+        <span class="last-update" id="lastUpdate">לא עודכן</span>
+        <button class="refresh-btn" id="refreshBtn" onclick="loadLiveData()">🔄 רענן</button>
+      </div>
+    </div>
+  </div>
 
-    <!-- Glucose Card -->
+  <div id="tab-calc" class="tab-content">
     <div class="card">
-      <div class="card-title">Current Glucose</div>
-      <div class="glucose-main">
-        <div class="glucose-value in-range" id="glucoseValue">—</div>
-        <div class="glucose-trend" id="glucoseTrend">⟶</div>
-      </div>
-      <div class="glucose-delta" id="glucoseDelta">—</div>
-      <div class="glucose-meta">
-        <div class="glucose-badge">
-          <span class="label">IOB</span>
-          <span class="val" id="iobValue">—</span>
+      <div class="card-title"><span>💉</span> מחשבון פיצול Lyumjev</div>
+      <div class="input-group">
+        <div class="input-wrap">
+          <label>גרם פחמימות</label>
+          <input type="number" id="carbInput" placeholder="50" min="0" max="300" oninput="calcSplit()">
         </div>
-        <div class="glucose-badge">
-          <span class="label">COB</span>
-          <span class="val" id="cobValue">—</span>
-        </div>
-        <div class="glucose-badge">
-          <span class="label">Target</span>
-          <span class="val" id="targetValue">—</span>
+        <div class="input-wrap">
+          <label>יחס פחמימה/אינסולין</label>
+          <input type="number" id="ratioInput" placeholder="10" min="1" max="50" oninput="calcSplit()">
         </div>
       </div>
-      <div class="last-update" id="lastUpdate">Not connected</div>
-      <div class="chart-wrap">
-        <canvas class="glucose-chart" id="glucoseChart"></canvas>
+      <div class="ratio-row">
+        <button class="ratio-btn" onclick="setRatio(8,this)">1:8<br><small>גבוה</small></button>
+        <button class="ratio-btn" onclick="setRatio(10,this)">1:10<br><small>רגיל</small></button>
+        <button class="ratio-btn" onclick="setRatio(12,this)">1:12<br><small>נמוך</small></button>
+        <button class="ratio-btn" onclick="setRatio(15,this)">1:15<br><small>קל</small></button>
+      </div>
+      <div class="split-result" id="splitResult">
+        <div class="split-row">
+          <span class="split-label">💉 חלק 1 — עכשיו (70%)</span>
+          <span class="split-val part1" id="part1Val">--</span>
+        </div>
+        <div class="split-row">
+          <span class="split-label">⏱ חלק 2 — בעוד 30-60 דק' (30%)</span>
+          <span class="split-val part2" id="part2Val">--</span>
+        </div>
+        <div class="split-row">
+          <span class="split-label">📊 סה"כ אינסולין</span>
+          <span class="split-val" id="totalInsulin">--</span>
+        </div>
+      </div>
+      <div class="input-group" style="margin-bottom:10px">
+        <div class="input-wrap">
+          <label>⏱ זמן עיכוב (דקות)</label>
+          <input type="number" id="timerMinutes" placeholder="45" min="10" max="120" value="45">
+        </div>
+      </div>
+      <button class="btn btn-timer" id="timerBtn" onclick="startTimer()">⏱ הפעל טיימר לחלק 2</button>
+      <div class="timer-display" id="timerDisplay">
+        <div class="timer-label">זמן שנותר להזרקת חלק 2</div>
+        <div class="timer-count" id="timerCount">--:--</div>
+        <div class="timer-label" id="timerPart2">חלק 2: -- יחידות</div>
       </div>
     </div>
+  </div>
 
-    <!-- TIR Card -->
+  <div id="tab-history" class="tab-content">
     <div class="card">
-      <div class="card-title">Time In Range (24h)</div>
-      <div class="range-bar">
-        <div class="range-low" id="tirLow" style="width:5%"></div>
-        <div class="range-in" id="tirIn" style="width:70%"></div>
-        <div class="range-high" id="tirHigh" style="width:25%"></div>
+      <div class="card-title"><span>🔍</span> חיפוש ארוחות</div>
+      <div class="search-row">
+        <input type="text" id="searchInput" placeholder="פיתה, אורז, לחם..." style="flex:1">
+        <button class="btn-search" onclick="searchTreatments()">🔍</button>
       </div>
-      <div style="display:flex;gap:16px;margin-top:10px;font-size:12px;">
-        <span style="color:var(--glucose-low)">🔴 Low <span id="tirLowPct">—</span></span>
-        <span style="color:var(--accent2)">🟢 In Range <span id="tirInPct">—</span></span>
-        <span style="color:var(--glucose-high)">🟠 High <span id="tirHighPct">—</span></span>
+      <div class="recommend-box" id="recommendBox">
+        <div class="recommend-title">💡 המלצת מינון לארוחה זו</div>
+        <div>יחס ממוצע: <strong id="avgRatio">--</strong> גר'/יחידה</div>
+        <div class="recommend-note" id="recommendNote">מחושב מההיסטוריה שלך</div>
+        <div style="margin-top:8px;font-size:.75rem;color:var(--muted)">🧮 לארוחה של <span id="recCarbs">--</span>ג' פחמימות:</div>
+        <div class="recommend-val"><span id="recDose">--</span> יחידות</div>
       </div>
-    </div>
-
-    <!-- Quick Bolus button -->
-    <button class="btn btn-primary" onclick="showPanel('bolus', document.querySelector('.tab:nth-child(2)'))">
-      💉 Quick Bolus Calculator
-    </button>
-  </div>
-
-  <!-- ── BOLUS PANEL ── -->
-  <div class="panel" id="panel-bolus">
-
-    <!-- Split Timer (shown when active) -->
-    <div class="split-timer" id="splitTimer">
-      <div class="split-timer-header">
-        <div class="split-timer-title">⏱ Second Part Reminder</div>
-        <button class="btn btn-sm btn-danger" onclick="cancelTimer()">Cancel</button>
-      </div>
-      <div class="timer-countdown" id="timerDisplay">00:00</div>
-      <div class="split-remind-dose" id="timerDoseRemind"></div>
-      <div class="timer-progress"><div class="timer-progress-fill" id="timerFill" style="width:100%"></div></div>
-    </div>
-
-    <div class="card">
-      <div class="card-title">Bolus Calculator — Lyumjev</div>
-
-      <div class="field">
-        <label>🍽️ Meal Name (Hebrew/Emoji OK)</label>
-        <input type="text" id="mealName" placeholder="e.g. פיתה 🥙" autocomplete="off" oninput="onMealNameInput(this.value)">
-        <div class="suggestions" id="mealSuggestions"></div>
-      </div>
-
-      <div class="field">
-        <label>🌾 Carbohydrates (grams)</label>
-        <input type="number" id="carbInput" placeholder="0" min="0" max="200" inputmode="decimal" oninput="recalc()">
-      </div>
-
-      <!-- Quick Presets -->
-      <div class="presets-grid">
-        <div class="preset-btn" onclick="setPreset('פיתה 🥙',60)">
-          <div class="preset-icon">🥙</div>
-          <div class="preset-name">פיתה</div>
-          <div class="preset-carbs">60g</div>
-        </div>
-        <div class="preset-btn" onclick="setPreset('אורז 🍚',45)">
-          <div class="preset-icon">🍚</div>
-          <div class="preset-name">אורז</div>
-          <div class="preset-carbs">45g</div>
-        </div>
-        <div class="preset-btn" onclick="setPreset('לחם 🍞',30)">
-          <div class="preset-icon">🍞</div>
-          <div class="preset-name">לחם</div>
-          <div class="preset-carbs">30g</div>
-        </div>
-        <div class="preset-btn" onclick="setPreset('פסטה 🍝',70)">
-          <div class="preset-icon">🍝</div>
-          <div class="preset-name">פסטה</div>
-          <div class="preset-carbs">70g</div>
-        </div>
-        <div class="preset-btn" onclick="setPreset('פיצה 🍕',55)">
-          <div class="preset-icon">🍕</div>
-          <div class="preset-name">פיצה</div>
-          <div class="preset-carbs">55g</div>
-        </div>
-        <div class="preset-btn" onclick="setPreset('פרי 🍎',20)">
-          <div class="preset-icon">🍎</div>
-          <div class="preset-name">פרי</div>
-          <div class="preset-carbs">20g</div>
-        </div>
-      </div>
-
-      <!-- Smart Adjustments -->
-      <div class="card-title">⚙️ Smart Adjustments</div>
-      <div class="toggle-row">
-        <div class="toggle-chip pod" id="toggle-new-pod" onclick="toggleChip('new-pod','pod','+15% New Pod')">
-          <div class="chip-icon">🔴</div>
-          <div class="chip-label">New Pod</div>
-          <div class="chip-sub">First 4h (+15%)</div>
-        </div>
-        <div class="toggle-chip pod" id="toggle-old-pod" onclick="toggleChip('old-pod','pod','+15% Old Pod')">
-          <div class="chip-icon">⚠️</div>
-          <div class="chip-label">Old Pod</div>
-          <div class="chip-sub">Last 24h (+15%)</div>
-        </div>
-      </div>
-      <div class="toggle-row">
-        <div class="toggle-chip exercise" id="toggle-pre-ex" onclick="toggleChip('pre-ex','exercise','−30% Pre-Exercise')">
-          <div class="chip-icon">🏃</div>
-          <div class="chip-label">Pre-Exercise</div>
-          <div class="chip-sub">−30%</div>
-        </div>
-        <div class="toggle-chip exercise" id="toggle-post-ex" onclick="toggleChip('post-ex','exercise','−15% Post-Exercise')">
-          <div class="chip-icon">🧘</div>
-          <div class="chip-label">Post-Exercise</div>
-          <div class="chip-sub">−15%</div>
-        </div>
-      </div>
-
-      <!-- Split Bolus toggle -->
-      <div class="field" style="display:flex;align-items:center;justify-content:space-between;">
-        <div>
-          <div style="font-size:14px;font-weight:600;">✂️ Split Bolus (Lyumjev)</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:2px;">70% now, 30% after</div>
-        </div>
-        <label style="position:relative;display:inline-block;width:48px;height:26px;">
-          <input type="checkbox" id="splitToggle" style="opacity:0;width:0;height:0;" onchange="recalc()">
-          <span style="position:absolute;cursor:pointer;inset:0;background:var(--surface3);border-radius:13px;transition:.3s;border:1px solid var(--border);" id="splitSlider"></span>
-        </label>
-      </div>
-
-      <div class="field">
-        <label>⏱ Split delay (minutes)</label>
-        <input type="number" id="splitDelay" value="30" min="5" max="120" oninput="recalc()">
-      </div>
-
-      <!-- Correction -->
-      <div class="field">
-        <label>🎯 Current Glucose (override, mg/dL)</label>
-        <input type="number" id="currentBG" placeholder="Auto from Nightscout" inputmode="decimal" oninput="recalc()">
-      </div>
-    </div>
-
-    <!-- Dose Result -->
-    <div class="dose-result" id="doseResult" style="display:none">
-      <div class="dose-label">Total Dose</div>
-      <div><span class="dose-num" id="doseNum">0.0</span><span class="dose-unit"> U</span></div>
-      <div id="doseSplitArea" class="dose-split" style="display:none"></div>
-      <div id="doseAdjustments" style="font-size:12px;color:var(--muted);margin-top:8px;"></div>
-    </div>
-
-    <button class="btn btn-primary" id="adminBtn" onclick="administerDose()" style="display:none">
-      ✅ Administer & Log Dose
-    </button>
-    <div style="height:10px"></div>
-    <button class="btn btn-secondary" onclick="recalc()">🔄 Recalculate</button>
-  </div>
-
-  <!-- ── HISTORY PANEL ── -->
-  <div class="panel" id="panel-history">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-      <div style="font-size:18px;font-weight:700;">Meal Log</div>
-      <button class="btn btn-sm btn-danger" onclick="clearHistory()">Clear All</button>
-    </div>
-    <div id="historyList">
-      <div style="text-align:center;color:var(--muted);padding:40px;font-size:14px;">
-        No meals logged yet.<br>Use the Bolus Calculator to log meals.
-      </div>
-    </div>
-  </div>
-
-  <!-- ── INSIGHTS PANEL ── -->
-  <div class="panel" id="panel-insights">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-      <div style="font-size:18px;font-weight:700;">Smart Insights</div>
-      <button class="btn btn-sm btn-secondary" onclick="runInsights()">🔄 Refresh</button>
-    </div>
-    <div id="insightsList">
-      <div style="text-align:center;color:var(--muted);padding:40px;font-size:14px;">
-        Connect to Nightscout to see insights.
+      <div id="treatmentsContainer">
+        <div class="empty-state"><span class="emoji">🍽️</span>חפש סוג ארוחה כדי לראות היסטוריה והמלצות</div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- Bottom Nav -->
-<div class="bottom-nav">
-  <div class="nav-item active" id="nav-home" onclick="showPanel('home',document.querySelector('.tab:nth-child(1)'));setNav('home')">
-    <div class="nav-icon">🏠</div><span>Home</span>
-  </div>
-  <div class="nav-item" id="nav-bolus" onclick="showPanel('bolus',document.querySelector('.tab:nth-child(2)'));setNav('bolus')">
-    <div class="nav-icon">💉</div><span>Bolus</span>
-  </div>
-  <div class="nav-item" id="nav-history" onclick="showPanel('history',document.querySelector('.tab:nth-child(3)'));setNav('history')">
-    <div class="nav-icon">📋</div><span>History</span>
-  </div>
-  <div class="nav-item" id="nav-insights" onclick="showPanel('insights',document.querySelector('.tab:nth-child(4)'));setNav('insights')">
-    <div class="nav-icon">🔍</div><span>Insights</span>
-  </div>
-</div>
-
-<!-- Settings Modal -->
-<div class="modal-overlay" id="settingsModal">
+<div class="modal-overlay" id="modalOverlay" onclick="closeSettingsIfOutside(event)">
   <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-title">⚙️ Settings</div>
-
-    <div class="settings-section">
-      <div class="settings-section-title">Nightscout Connection</div>
-      <div class="field">
-        <label>Nightscout URL</label>
-        <input type="url" id="nsUrl" placeholder="https://mysite.fly.dev">
-      </div>
-      <div class="field">
-        <label>API Secret</label>
-        <input type="password" id="nsSecret" placeholder="Your API secret">
-      </div>
-      <button class="btn btn-secondary" style="margin-bottom:14px;" onclick="testConnection()">🔌 Test Connection</button>
+    <div class="modal-title">⚙️ הגדרות חיבור</div>
+    <div class="field-group">
+      <label>כתובת שרת Nightscout</label>
+      <input type="text" id="nsUrl" placeholder="https://mooo.com">
     </div>
-
-    <div class="settings-section">
-      <div class="settings-section-title">Profile (manual override)</div>
-      <div class="profile-grid">
-        <div class="field">
-          <label>I:C Ratio (g/U)</label>
-          <input type="number" id="icRatio" placeholder="e.g. 10">
-        </div>
-        <div class="field">
-          <label>ISF (mg/dL/U)</label>
-          <input type="number" id="isf" placeholder="e.g. 50">
-        </div>
-        <div class="field">
-          <label>Target BG (mg/dL)</label>
-          <input type="number" id="targetBG" placeholder="e.g. 100">
-        </div>
-        <div class="field">
-          <label>Insulin Duration (h)</label>
-          <input type="number" id="dia" placeholder="e.g. 4" step="0.5">
-        </div>
-      </div>
+    <div class="field-group">
+      <label>API Secret (סיסמה)</label>
+      <input type="password" id="nsSecret" placeholder="הסיסמה שלך">
     </div>
-
-    <div class="settings-section">
-      <div class="settings-section-title">Display</div>
-      <div class="settings-row">
-        <div>
-          <div class="settings-label">Units</div>
-          <div class="settings-sub">Glucose units</div>
-        </div>
-        <select style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:8px;font-family:'Sora',sans-serif;" id="units">
-          <option value="mgdl">mg/dL</option>
-          <option value="mmol">mmol/L</option>
-        </select>
-      </div>
+    <div class="field-group">
+      <label>יחס פחמימות/אינסולין (ברירת מחדל)</label>
+      <input type="number" id="defaultRatio" placeholder="10" min="1" max="50">
     </div>
-
-    <div style="display:flex;gap:10px;">
-      <button class="btn btn-primary" onclick="saveSettings()">💾 Save Settings</button>
-      <button class="btn btn-secondary" onclick="closeSettings()">Cancel</button>
-    </div>
+    <button class="btn btn-primary" onclick="saveSettings()">💾 שמור הגדרות</button>
+    <div class="save-indicator" id="saveIndicator"></div>
+    <button onclick="closeSettings()" style="width:100%;margin-top:10px;background:none;border:none;color:var(--muted);padding:12px;cursor:pointer;font-family:Rubik;font-size:.9rem;">✖ סגור</button>
   </div>
 </div>
 
 <script>
-// ═══════════════════════════════════════════
-//  STATE
-// ═══════════════════════════════════════════
-const S = {
-  ns: { url: '', secret: '', connected: false },
-  profile: { ic: null, isf: null, target: 100, dia: 4, units: 'mgdl' },
-  sgv: null, iob: 0, cob: 0,
-  sgvHistory: [],
-  activeChips: new Set(),
-  timerInterval: null,
-  timerEnd: null,
-  timerSecondDose: 0,
-};
+var timerInterval = null;
 
-// ═══════════════════════════════════════════
-//  INIT
-// ═══════════════════════════════════════════
-function init() {
-  loadSettings();
-  renderHistory();
-  if (S.ns.url) { fetchNS(); setInterval(fetchNS, 60000); }
-  // Toggle slider style
-  const sl = document.getElementById('splitSlider');
-  document.getElementById('splitToggle').addEventListener('change', function() {
-    sl.style.background = this.checked ? 'var(--accent)' : 'var(--surface3)';
-  });
-}
-
-// ═══════════════════════════════════════════
-//  SETTINGS
-// ═══════════════════════════════════════════
-function loadSettings() {
-  const d = JSON.parse(localStorage.getItem('diabuddy_settings') || '{}');
-  S.ns.url = d.url || '';
-  S.ns.secret = d.secret || '';
-  S.profile.ic = d.ic || null;
-  S.profile.isf = d.isf || null;
-  S.profile.target = d.target || 100;
-  S.profile.dia = d.dia || 4;
-  S.profile.units = d.units || 'mgdl';
-  document.getElementById('nsUrl').value = S.ns.url;
-  document.getElementById('nsSecret').value = S.ns.secret;
-  document.getElementById('icRatio').value = S.profile.ic || '';
-  document.getElementById('isf').value = S.profile.isf || '';
-  document.getElementById('targetBG').value = S.profile.target;
-  document.getElementById('dia').value = S.profile.dia;
-  document.getElementById('units').value = S.profile.units;
+function getSettings() {
+  return {
+    nsUrl: localStorage.getItem('nsUrl') || '',
+    nsSecret: localStorage.getItem('nsSecret') || '',
+    defaultRatio: parseFloat(localStorage.getItem('defaultRatio')) || 10
+  };
 }
 
 function saveSettings() {
-  S.ns.url = document.getElementById('nsUrl').value.trim().replace(/\/$/, '');
-  S.ns.secret = document.getElementById('nsSecret').value.trim();
-  S.profile.ic = parseFloat(document.getElementById('icRatio').value) || null;
-  S.profile.isf = parseFloat(document.getElementById('isf').value) || null;
-  S.profile.target = parseFloat(document.getElementById('targetBG').value) || 100;
-  S.profile.dia = parseFloat(document.getElementById('dia').value) || 4;
-  S.profile.units = document.getElementById('units').value;
-
-  localStorage.setItem('diabuddy_settings', JSON.stringify({
-    url: S.ns.url, secret: S.ns.secret,
-    ic: S.profile.ic, isf: S.profile.isf,
-    target: S.profile.target, dia: S.profile.dia,
-    units: S.profile.units
-  }));
-  closeSettings();
-  showAlert('✅ Settings saved', 'success');
-  fetchNS();
+  var url = document.getElementById('nsUrl').value.trim().replace(/\/$/, '');
+  var secret = document.getElementById('nsSecret').value.trim();
+  var ratio = document.getElementById('defaultRatio').value;
+  localStorage.setItem('nsUrl', url);
+  localStorage.setItem('nsSecret', secret);
+  localStorage.setItem('defaultRatio', ratio);
+  var ind = document.getElementById('saveIndicator');
+  ind.textContent = '✅ נשמר בהצלחה!';
+  setTimeout(function() { ind.textContent = ''; closeSettings(); loadLiveData(); }, 1500);
+  document.getElementById('ratioInput').value = ratio;
+  calcSplit();
 }
 
-function openSettings() { document.getElementById('settingsModal').classList.add('open'); }
-function closeSettings() { document.getElementById('settingsModal').classList.remove('open'); }
-document.getElementById('settingsModal').addEventListener('click', e => {
-  if (e.target === e.currentTarget) closeSettings();
-});
+function openSettings() {
+  var s = getSettings();
+  document.getElementById('nsUrl').value = s.nsUrl;
+  document.getElementById('nsSecret').value = s.nsSecret;
+  document.getElementById('defaultRatio').value = s.defaultRatio;
+  document.getElementById('modalOverlay').classList.add('show');
+}
 
-async function testConnection() {
-  const url = document.getElementById('nsUrl').value.trim().replace(/\/$/, '');
-  const secret = document.getElementById('nsSecret').value.trim();
-  if (!url) { showAlert('Please enter Nightscout URL', 'error'); return; }
+function closeSettings() {
+  document.getElementById('modalOverlay').classList.remove('show');
+}
+
+function closeSettingsIfOutside(e) {
+  if (e.target === document.getElementById('modalOverlay')) closeSettings();
+}
+
+async function fetchFromNightscout(endpoint) {
+  var s = getSettings();
+  if (!s.nsUrl) { showDot('error'); return null; }
+  var sep = endpoint.includes('?') ? '&' : '?';
+  var fullUrl = s.nsUrl + endpoint + sep + 'api_secret=' + encodeURIComponent(s.nsSecret);
   try {
-    const hash = await sha1(secret);
-    const r = await fetch(`${url}/api/v1/status.json`, {
-      headers: { 'api-secret': hash }
-    });
-    if (r.ok) { showAlert('✅ Connection successful!', 'success'); }
-    else { showAlert('❌ Connection failed (status ' + r.status + ')', 'error'); }
-  } catch(e) {
-    showAlert('❌ Cannot reach Nightscout: ' + e.message, 'error');
+    var r = await fetch(fullUrl, { method: 'GET', mode: 'cors', headers: { 'Accept': 'application/json' } });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return await r.json();
+  } catch(err) {
+    console.error('Fetch error:', err);
+    showDot('error');
+    return null;
   }
 }
 
-// ═══════════════════════════════════════════
-//  SHA1 (for NS auth)
-// ═══════════════════════════════════════════
-async function sha1(str) {
-  if (!str) return '';
-  const buf = new TextEncoder().encode(str);
-  const hash = await crypto.subtle.digest('SHA-1', buf);
-  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2,'0')).join('');
+function showDot(state) {
+  document.getElementById('statusDot').className = 'status-dot ' + state;
 }
 
-// ═══════════════════════════════════════════
-//  NIGHTSCOUT FETCH
-// ═══════════════════════════════════════════
-async function fetchNS() {
-  if (!S.ns.url) return;
-  try {
-    const hash = await sha1(S.ns.secret);
-    const headers = {};
-    if (hash) headers['api-secret'] = hash;
+function trendArrow(dir) {
+  var m = { DoubleUp:'⬆⬆', SingleUp:'⬆', FortyFiveUp:'↗', Flat:'→', FortyFiveDown:'↘', SingleDown:'⬇', DoubleDown:'⬇⬇', NONE:'↔', 'NOT COMPUTABLE':'?' };
+  return m[dir] || '↔';
+}
 
-    // Fetch SGV history (3h)
-    const count = 36;
-    const [sgvRes, treatRes, profileRes] = await Promise.all([
-      fetch(`${S.ns.url}/api/v1/entries/sgv.json?count=${count}`, { headers }),
-      fetch(`${S.ns.url}/api/v1/treatments.json?count=50`, { headers }),
-      fetch(`${S.ns.url}/api/v1/profile.json`, { headers })
-    ]);
+function sgvColor(v) {
+  if (v < 70) return 'low';
+  if (v > 180) return 'high';
+  return 'ok';
+}
 
-    if (!sgvRes.ok) throw new Error('SGV fetch failed: ' + sgvRes.status);
-
-    const sgvData = await sgvRes.json();
-    const treatments = treatRes.ok ? await treatRes.json() : [];
-    const profileData = profileRes.ok ? await profileRes.json() : null;
-
-    // Parse profile
-    if (profileData) parseProfile(profileData);
-
-    // Parse SGV
-    if (sgvData && sgvData.length > 0) {
-      S.sgvHistory = sgvData.map(e => ({ t: e.date, v: e.sgv, trend: e.direction })).reverse();
-      const latest = sgvData[0];
-      S.sgv = latest.sgv;
-      const prev = sgvData[1] ? sgvData[1].sgv : latest.sgv;
-      const delta = S.sgv - prev;
-      renderGlucose(S.sgv, latest.direction, delta, new Date(latest.date));
-      renderChart(S.sgvHistory);
-      calcTIR(S.sgvHistory);
-    }
-
-    // Calc IOB from bolus treatments
-    S.iob = calcIOB(treatments);
-    S.cob = calcCOB(treatments);
-    document.getElementById('iobValue').textContent = S.iob.toFixed(2) + 'U';
-    document.getElementById('cobValue').textContent = S.cob.toFixed(0) + 'g';
-
-    setConnected(true);
-    recalc();
-  } catch(e) {
-    setConnected(false);
-    showAlert('⚠️ Nightscout error: ' + e.message, 'error');
+async function loadLiveData() {
+  var btn = document.getElementById('refreshBtn');
+  btn.classList.add('spinning');
+  showDot('');
+  var sgvData = await fetchFromNightscout('/api/v1/entries/current.json');
+  if (sgvData) {
+    var entry = Array.isArray(sgvData) ? sgvData[0] : sgvData;
+    var sgv = entry.sgv || '--';
+    var el = document.getElementById('sgvValue');
+    el.textContent = sgv;
+    el.className = 'sgv-value ' + sgvColor(sgv);
+    document.getElementById('sgvTrend').textContent = trendArrow(entry.direction);
+    document.getElementById('deltaValue').textContent = (entry.delta > 0 ? '+' : '') + (entry.delta || 0);
+    var d = new Date(entry.date || entry.dateString);
+    document.getElementById('sgvTime').textContent = d.toLocaleTimeString('he-IL');
+    document.getElementById('dateValue').textContent = d.toLocaleDateString('he-IL', {day:'2-digit', month:'2-digit'});
+    showDot('connected');
   }
-}
-
-function parseProfile(data) {
-  try {
-    const p = Array.isArray(data) ? data[0] : data;
-    const store = p.store || {};
-    const dflt = p.defaultProfile || Object.keys(store)[0];
-    const prof = store[dflt] || {};
-    const nowH = new Date().getHours() + new Date().getMinutes() / 60;
-
-    function getVal(arr) {
-      if (!arr || !arr.length) return null;
-      let val = arr[0].value;
-      for (const e of arr) {
-        const [h, m] = (e.time || '00:00').split(':').map(Number);
-        const t = h + m / 60;
-        if (t <= nowH) val = e.value;
-      }
-      return parseFloat(val);
-    }
-
-    if (!S.profile.ic) S.profile.ic = getVal(prof.carbratio);
-    if (!S.profile.isf) S.profile.isf = getVal(prof.sens);
-    const target = getVal(prof.target_high);
-    if (target && !document.getElementById('targetBG').value) S.profile.target = target;
-    if (prof.dia) S.profile.dia = parseFloat(prof.dia);
-
-    document.getElementById('targetValue').textContent = S.profile.target + ' mg/dL';
-  } catch(e) { console.warn('Profile parse error', e); }
-}
-
-function calcIOB(treatments) {
-  const now = Date.now();
-  const dia = S.profile.dia * 3600000;
-  let iob = 0;
-  for (const t of treatments) {
-    if (t.insulin && t.insulin > 0 && t.eventType && t.eventType.toLowerCase().includes('bolus')) {
-      const age = now - new Date(t.created_at).getTime();
-      if (age < dia) {
-        // Simple linear decay
-        const remaining = 1 - (age / dia);
-        iob += t.insulin * remaining;
-      }
+  var dev = await fetchFromNightscout('/api/v1/devicestatus.json?count=1');
+  if (dev && dev.length > 0) {
+    var iob = dev[0] && dev[0].openaps && dev[0].openaps.iob && dev[0].openaps.iob.iob;
+    if (iob !== undefined) {
+      document.getElementById('iobValue').textContent = parseFloat(iob).toFixed(2) + ' U';
+      var pct = Math.min(100, (parseFloat(iob) / 10) * 100);
+      document.getElementById('iobBar').style.width = pct + '%';
     }
   }
-  return iob;
+  document.getElementById('lastUpdate').textContent = 'עודכן: ' + new Date().toLocaleTimeString('he-IL');
+  btn.classList.remove('spinning');
 }
 
-function calcCOB(treatments) {
-  const now = Date.now();
-  let cob = 0;
-  for (const t of treatments) {
-    if (t.carbs && t.carbs > 0) {
-      const age = (now - new Date(t.created_at).getTime()) / 60000;
-      if (age < 180) { // 3h absorption
-        const remaining = Math.max(0, 1 - age / 180);
-        cob += t.carbs * remaining;
-      }
-    }
-  }
-  return cob;
+function setRatio(val, el) {
+  document.getElementById('ratioInput').value = val;
+  document.querySelectorAll('.ratio-btn').forEach(function(b) { b.classList.remove('active'); });
+  el.classList.add('active');
+  calcSplit();
 }
 
-// ═══════════════════════════════════════════
-//  RENDER GLUCOSE
-// ═══════════════════════════════════════════
-const TREND_ARROWS = {
-  'DoubleUp': '⇈', 'SingleUp': '↑', 'FortyFiveUp': '↗',
-  'Flat': '→', 'FortyFiveDown': '↘', 'SingleDown': '↓',
-  'DoubleDown': '⇊', 'NOT COMPUTABLE': '?', 'RATE OUT OF RANGE': '⚡'
-};
-
-function renderGlucose(sgv, direction, delta, time) {
-  const el = document.getElementById('glucoseValue');
-  const display = S.profile.units === 'mmol' ? (sgv / 18).toFixed(1) : sgv;
-  const unit = S.profile.units === 'mmol' ? ' mmol/L' : ' mg/dL';
-  el.textContent = display;
-
-  el.className = 'glucose-value ';
-  if (sgv < 70) el.classList.add('low');
-  else if (sgv <= 180) el.classList.add('in-range');
-  else if (sgv <= 250) el.classList.add('high');
-  else el.classList.add('very-high');
-
-  document.getElementById('glucoseTrend').textContent = TREND_ARROWS[direction] || '→';
-  const d = delta >= 0 ? '+' + delta : delta;
-  document.getElementById('glucoseDelta').textContent = d + unit;
-  const mins = Math.round((Date.now() - time.getTime()) / 60000);
-  document.getElementById('lastUpdate').textContent = `Updated ${mins} min ago`;
-}
-
-function calcTIR(hist) {
-  if (!hist.length) return;
-  let lo = 0, ok = 0, hi = 0;
-  for (const e of hist) {
-    if (e.v < 70) lo++;
-    else if (e.v <= 180) ok++;
-    else hi++;
-  }
-  const t = hist.length;
-  const lp = Math.round(lo/t*100), ip = Math.round(ok/t*100), hp = Math.round(hi/t*100);
-  document.getElementById('tirLow').style.width = lp + '%';
-  document.getElementById('tirIn').style.width = ip + '%';
-  document.getElementById('tirHigh').style.width = hp + '%';
-  document.getElementById('tirLowPct').textContent = lp + '%';
-  document.getElementById('tirInPct').textContent = ip + '%';
-  document.getElementById('tirHighPct').textContent = hp + '%';
-}
-
-// ═══════════════════════════════════════════
-//  MINI CHART
-// ═══════════════════════════════════════════
-function renderChart(data) {
-  const canvas = document.getElementById('glucoseChart');
-  const ctx = canvas.getContext('2d');
-  const dpr = window.devicePixelRatio || 1;
-  const W = canvas.offsetWidth, H = 100;
-  canvas.width = W * dpr; canvas.height = H * dpr;
-  ctx.scale(dpr, dpr);
-
-  const vals = data.map(d => d.v);
-  const min = Math.min(...vals, 60), max = Math.max(...vals, 200);
-  const pad = 8;
-
-  ctx.clearRect(0, 0, W, H);
-
-  // Target zone
-  const ty1 = H - pad - ((180 - min) / (max - min)) * (H - pad * 2);
-  const ty2 = H - pad - ((70 - min) / (max - min)) * (H - pad * 2);
-  ctx.fillStyle = 'rgba(63,185,80,0.07)';
-  ctx.fillRect(0, ty1, W, ty2 - ty1);
-
-  // Line
-  ctx.beginPath();
-  data.forEach((d, i) => {
-    const x = pad + (i / (data.length - 1)) * (W - pad * 2);
-    const y = H - pad - ((d.v - min) / (max - min)) * (H - pad * 2);
-    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-  });
-  ctx.strokeStyle = 'rgba(88,166,255,0.8)';
-  ctx.lineWidth = 2;
-  ctx.lineJoin = 'round';
-  ctx.stroke();
-
-  // Latest dot
-  if (data.length > 0) {
-    const last = data[data.length - 1];
-    const x = W - pad;
-    const y = H - pad - ((last.v - min) / (max - min)) * (H - pad * 2);
-    ctx.beginPath();
-    ctx.arc(x, y, 4, 0, Math.PI * 2);
-    const c = last.v < 70 ? '#f85149' : last.v <= 180 ? '#3fb950' : '#f0883e';
-    ctx.fillStyle = c;
-    ctx.fill();
-    ctx.strokeStyle = 'var(--bg)';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-  }
-}
-
-// ═══════════════════════════════════════════
-//  BOLUS CALC
-// ═══════════════════════════════════════════
-function recalc() {
-  const carbs = parseFloat(document.getElementById('carbInput').value) || 0;
-  const ic = S.profile.ic;
-  const isf = S.profile.isf;
-  const target = S.profile.target;
-  const bgOverride = parseFloat(document.getElementById('currentBG').value);
-  const bg = bgOverride || S.sgv;
-
-  if (!ic || !isf) {
-    // Show connect prompt
-    document.getElementById('doseResult').style.display = 'none';
-    document.getElementById('adminBtn').style.display = 'none';
+function calcSplit() {
+  var carbs = parseFloat(document.getElementById('carbInput').value);
+  var ratio = parseFloat(document.getElementById('ratioInput').value);
+  if (!carbs || !ratio) {
+    document.getElementById('splitResult').classList.remove('show');
+    document.getElementById('timerBtn').classList.remove('show');
     return;
   }
-
-  // Base dose
-  let mealDose = carbs / ic;
-
-  // Correction
-  let correction = 0;
-  if (bg) {
-    correction = (bg - target) / isf;
-    correction -= S.iob; // subtract IOB
-  }
-
-  let total = mealDose + correction;
-  let breakdown = [];
-
-  // Adjustments
-  let adj = 1.0;
-  if (S.activeChips.has('new-pod') || S.activeChips.has('old-pod')) {
-    adj *= 1.15;
-    breakdown.push('+15% Pod');
-  }
-  if (S.activeChips.has('pre-ex')) {
-    adj *= 0.70;
-    breakdown.push('−30% Pre-Exercise');
-  }
-  if (S.activeChips.has('post-ex')) {
-    adj *= 0.85;
-    breakdown.push('−15% Post-Exercise');
-  }
-
-  total *= adj;
-  total = Math.max(0, total);
-
-  const rounded = Math.round(total * 2) / 2; // 0.5U increments
-
-  const resultEl = document.getElementById('doseResult');
-  resultEl.style.display = 'block';
-  document.getElementById('adminBtn').style.display = 'block';
-  document.getElementById('doseNum').textContent = rounded.toFixed(1);
-
-  // Split bolus
-  const doSplit = document.getElementById('splitToggle').checked;
-  const splitArea = document.getElementById('doseSplitArea');
-  if (doSplit && rounded > 0) {
-    splitArea.style.display = 'flex';
-    const p1 = Math.round(rounded * 0.7 * 2) / 2;
-    const p2 = Math.round(rounded * 0.3 * 2) / 2;
-    splitArea.innerHTML = `
-      <div class="split-pill"><div class="sp-label">Now (70%)</div><div class="sp-val">${p1.toFixed(1)} U</div></div>
-      <div class="split-pill"><div class="sp-label">Later (30%)</div><div class="sp-val">${p2.toFixed(1)} U</div></div>
-    `;
-  } else {
-    splitArea.style.display = 'none';
-  }
-
-  const adjDiv = document.getElementById('doseAdjustments');
-  if (breakdown.length) {
-    adjDiv.innerHTML = breakdown.map(b => `<span style="margin-right:8px;color:var(--teal)">• ${b}</span>`).join('');
-  } else {
-    adjDiv.innerHTML = '';
-  }
-
-  if (correction !== 0 && bg) {
-    adjDiv.innerHTML += `<br><span style="color:var(--muted)">Correction: ${correction >= 0 ? '+' : ''}${correction.toFixed(2)}U (BG ${bg} → target ${target})</span>`;
-  }
-
-  if (S.iob > 0.1) {
-    adjDiv.innerHTML += `<br><span style="color:var(--warn)">⚠️ IOB ${S.iob.toFixed(2)}U subtracted</span>`;
-  }
+  var total = carbs / ratio;
+  var p1 = (total * 0.7).toFixed(1);
+  var p2 = (total * 0.3).toFixed(1);
+  document.getElementById('part1Val').textContent = p1 + ' U';
+  document.getElementById('part2Val').textContent = p2 + ' U';
+  document.getElementById('totalInsulin').textContent = total.toFixed(1) + ' U';
+  document.getElementById('timerPart2').textContent = 'חלק 2: ' + p2 + ' יחידות';
+  document.getElementById('splitResult').classList.add('show');
+  document.getElementById('timerBtn').classList.add('show');
 }
 
-function administerDose() {
-  const carbs = parseFloat(document.getElementById('carbInput').value) || 0;
-  const name = document.getElementById('mealName').value || 'Meal';
-  const dose = parseFloat(document.getElementById('doseNum').textContent);
-  const doSplit = document.getElementById('splitToggle').checked;
-  const splitDelay = parseInt(document.getElementById('splitDelay').value) || 30;
-
-  if (!dose) { showAlert('No dose calculated', 'error'); return; }
-
-  // Log to history
-  const entry = {
-    id: Date.now(),
-    name,
-    carbs,
-    dose,
-    split: doSplit,
-    chips: [...S.activeChips],
-    bg: S.sgv,
-    ts: new Date().toISOString(),
-    postBG: null // filled in later
-  };
-  const hist = getHistory();
-  hist.unshift(entry);
-  localStorage.setItem('diabuddy_history', JSON.stringify(hist.slice(0, 100)));
-
-  // Start split timer if needed
-  if (doSplit) {
-    const p2 = Math.round(dose * 0.3 * 2) / 2;
-    startSplitTimer(splitDelay, p2);
-  }
-
-  showAlert(`✅ ${dose.toFixed(1)}U logged for "${name}"`, 'success');
-  renderHistory();
-
-  // Reset
-  document.getElementById('carbInput').value = '';
-  document.getElementById('mealName').value = '';
-  document.getElementById('doseResult').style.display = 'none';
-  document.getElementById('adminBtn').style.display = 'none';
-}
-
-// ═══════════════════════════════════════════
-//  TOGGLES
-// ═══════════════════════════════════════════
-function toggleChip(id, group, label) {
-  const el = document.getElementById('toggle-' + id);
-  if (S.activeChips.has(id)) {
-    S.activeChips.delete(id);
-    el.classList.remove('active');
-  } else {
-    // Exclusive within group for pod & exercise
-    if (group === 'pod') { S.activeChips.delete('new-pod'); S.activeChips.delete('old-pod'); document.querySelectorAll('.toggle-chip.pod').forEach(e => e.classList.remove('active')); }
-    if (group === 'exercise') { S.activeChips.delete('pre-ex'); S.activeChips.delete('post-ex'); document.querySelectorAll('.toggle-chip.exercise').forEach(e => e.classList.remove('active')); }
-    S.activeChips.add(id);
-    el.classList.add('active');
-  }
-  recalc();
-}
-
-// ═══════════════════════════════════════════
-//  SPLIT TIMER
-// ═══════════════════════════════════════════
-function startSplitTimer(minutes, dose2) {
-  if (S.timerInterval) clearInterval(S.timerInterval);
-  S.timerEnd = Date.now() + minutes * 60000;
-  S.timerSecondDose = dose2;
-  const totalMs = minutes * 60000;
-
-  document.getElementById('splitTimer').classList.add('active');
-  document.getElementById('timerDoseRemind').textContent = `Give ${dose2.toFixed(1)} U when timer ends`;
-
-  S.timerInterval = setInterval(() => {
-    const rem = S.timerEnd - Date.now();
+function startTimer() {
+  var mins = parseInt(document.getElementById('timerMinutes').value) || 45;
+  if (timerInterval) clearInterval(timerInterval);
+  var end = Date.now() + mins * 60 * 1000;
+  document.getElementById('timerDisplay').classList.add('show');
+  if (Notification.permission === 'default') Notification.requestPermission();
+  timerInterval = setInterval(function() {
+    var rem = end - Date.now();
     if (rem <= 0) {
-      clearInterval(S.timerInterval);
-      document.getElementById('timerDisplay').textContent = '00:00';
-      document.getElementById('timerFill').style.width = '0%';
-      showTimerAlert(dose2);
+      clearInterval(timerInterval);
+      document.getElementById('timerCount').textContent = '00:00';
+      document.getElementById('timerDisplay').style.borderColor = 'var(--ok)';
+      if (Notification.permission === 'granted') {
+        var p2 = document.getElementById('part2Val').textContent;
+        new Notification('💉 זמן להזרקת חלק 2!', { body: 'הגיע הזמן להזריק ' + p2 + ' אינסולין' });
+      }
       return;
     }
-    const m = Math.floor(rem / 60000);
-    const s = Math.floor((rem % 60000) / 1000);
-    document.getElementById('timerDisplay').textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-    document.getElementById('timerFill').style.width = (rem / totalMs * 100) + '%';
-  }, 1000);
+    var m = Math.floor(rem / 60000);
+    var s = Math.floor((rem % 60000) / 1000);
+    document.getElementById('timerCount').textContent = String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+  }, 500);
 }
 
-function cancelTimer() {
-  clearInterval(S.timerInterval);
-  document.getElementById('splitTimer').classList.remove('active');
-}
-
-function showTimerAlert(dose) {
-  document.getElementById('timerDisplay').textContent = '⏰';
-  showAlert(`🔔 Time! Give second part: ${dose.toFixed(1)} U`, 'success');
-  // Vibrate on mobile
-  if (navigator.vibrate) navigator.vibrate([300, 100, 300, 100, 300]);
-  setTimeout(cancelTimer, 10000);
-}
-
-// ═══════════════════════════════════════════
-//  MEAL SUGGESTIONS
-// ═══════════════════════════════════════════
-function onMealNameInput(val) {
-  if (!val || val.length < 2) { document.getElementById('mealSuggestions').classList.remove('show'); return; }
-  const hist = getHistory();
-  const term = val.toLowerCase();
-  const matches = {};
-
-  for (const h of hist) {
-    if (!h.name) continue;
-    if (h.name.toLowerCase().includes(term)) {
-      const key = h.name;
-      if (!matches[key]) matches[key] = { carbs: h.carbs, doses: [], name: h.name };
-      matches[key].doses.push(h.dose);
-    }
-  }
-
-  const items = Object.values(matches).slice(0, 5);
-  if (!items.length) { document.getElementById('mealSuggestions').classList.remove('show'); return; }
-
-  const html = items.map(m => {
-    const avgDose = (m.doses.reduce((a,b) => a+b, 0) / m.doses.length).toFixed(1);
-    return `<div class="suggestion-item" onclick="applySuggestion('${m.name.replace(/'/g,"\\'")}',${m.carbs})">
-      <div>${m.name}<div class="suggestion-meta">Avg ${avgDose}U • ${m.doses.length} times</div></div>
-      <span class="tir-badge">Use</span>
-    </div>`;
-  }).join('');
-
-  document.getElementById('mealSuggestions').innerHTML = html;
-  document.getElementById('mealSuggestions').classList.add('show');
-}
-
-function applySuggestion(name, carbs) {
-  document.getElementById('mealName').value = name;
-  document.getElementById('carbInput').value = carbs;
-  document.getElementById('mealSuggestions').classList.remove('show');
-  recalc();
-}
-
-function setPreset(name, carbs) {
-  document.getElementById('mealName').value = name;
-  document.getElementById('carbInput').value = carbs;
-  recalc();
-}
-
-// ═══════════════════════════════════════════
-//  HISTORY
-// ═══════════════════════════════════════════
-function getHistory() {
-  return JSON.parse(localStorage.getItem('diabuddy_history') || '[]');
-}
-
-function renderHistory() {
-  const hist = getHistory();
-  const el = document.getElementById('historyList');
-  if (!hist.length) {
-    el.innerHTML = '<div style="text-align:center;color:var(--muted);padding:40px;font-size:14px;">No meals logged yet.<br>Use the Bolus Calculator to log meals.</div>';
+async function searchTreatments() {
+  var query = document.getElementById('searchInput').value.trim();
+  if (!query) return;
+  var container = document.getElementById('treatmentsContainer');
+  container.innerHTML = '<div class="empty-state"><span class="loader"></span> מחפש...</div>';
+  document.getElementById('recommendBox').classList.remove('show');
+  var encoded = encodeURIComponent(query);
+  var data = await fetchFromNightscout('/api/v1/treatments.json?find[notes][$regex]=' + encoded + '&count=5&sort%5BcreatedAt%5D=-1');
+  if (!data || data.length === 0) {
+    container.innerHTML = '<div class="empty-state"><span class="emoji">🤷</span>לא נמצאו ארוחות עם "' + query + '"</div>';
     return;
   }
-  const ICONS = ['🍽️','🥙','🍚','🍞','🍝','🍕','🥗','🍔'];
-  el.innerHTML = hist.map((h, i) => {
-    const d = new Date(h.ts);
-    const timeStr = d.toLocaleDateString('he-IL', {month:'short',day:'numeric'}) + ' ' + d.toLocaleTimeString('he-IL', {hour:'2-digit',minute:'2-digit'});
-    const icon = ICONS[i % ICONS.length];
-    return `<div class="history-item">
-      <div class="history-icon">${icon}</div>
-      <div class="history-body">
-        <div class="history-name">${h.name || 'Meal'}</div>
-        <div class="history-meta">
-          <span>🌾 ${h.carbs}g carbs</span>
-          ${h.bg ? `<span>🩸 ${h.bg} mg/dL</span>` : ''}
-          ${h.split ? '<span>✂️ Split</span>' : ''}
-          ${h.chips && h.chips.length ? `<span>${h.chips.join(', ')}</span>` : ''}
-        </div>
-      </div>
-      <div style="text-align:right;flex-shrink:0">
-        <div class="history-dose">${h.dose.toFixed(1)}U</div>
-        <div class="history-date">${timeStr}</div>
-      </div>
-    </div>`;
-  }).join('');
-}
-
-function clearHistory() {
-  if (confirm('Clear all meal history?')) {
-    localStorage.removeItem('diabuddy_history');
-    renderHistory();
-  }
-}
-
-// ═══════════════════════════════════════════
-//  INSIGHTS ENGINE
-// ═══════════════════════════════════════════
-async function runInsights() {
-  const el = document.getElementById('insightsList');
-  el.innerHTML = '<div style="display:flex;justify-content:center;padding:30px;"><div class="spinner"></div></div>';
-
-  if (!S.ns.url) {
-    el.innerHTML = '<div style="text-align:center;color:var(--muted);padding:40px;">Connect to Nightscout first.</div>';
-    return;
-  }
-
-  try {
-    const hash = await sha1(S.ns.secret);
-    const headers = hash ? { 'api-secret': hash } : {};
-
-    // 48h of data
-    const since = Date.now() - 48 * 3600000;
-    const [sgvRes, treatRes] = await Promise.all([
-      fetch(`${S.ns.url}/api/v1/entries/sgv.json?count=576&find[date][$gt]=${since}`, { headers }),
-      fetch(`${S.ns.url}/api/v1/treatments.json?count=200&find[created_at][$gt]=${new Date(since).toISOString()}`, { headers })
-    ]);
-
-    const sgvData = sgvRes.ok ? await sgvRes.json() : [];
-    const treatments = treatRes.ok ? await treatRes.json() : [];
-
-    const insights = analyzeData(sgvData, treatments);
-    renderInsights(insights);
-  } catch(e) {
-    el.innerHTML = `<div class="alert error">❌ Error loading insights: ${e.message}</div>`;
-  }
-}
-
-function analyzeData(sgvData, treatments) {
-  const insights = [];
-  if (!sgvData.length) return [{ type: 'info', icon: '📊', title: 'Not enough data', body: 'Need 48h of CGM data.' }];
-
-  // Sort by time ascending
-  const sgv = [...sgvData].sort((a,b) => a.date - b.date);
-
-  // 1. Overnight basal analysis
-  const nightReadings = sgv.filter(e => {
-    const h = new Date(e.date).getHours();
-    return h >= 0 && h <= 6;
+  var totalRatios = 0, validCount = 0;
+  data.forEach(function(t) {
+    if (t.carbs && t.insulin && t.insulin > 0) { totalRatios += t.carbs / t.insulin; validCount++; }
   });
-  if (nightReadings.length > 5) {
-    const drifts = [];
-    for (let i = 1; i < nightReadings.length; i++) {
-      drifts.push(nightReadings[i].sgv - nightReadings[i-1].sgv);
-    }
-    const avgDrift = drifts.reduce((a,b) => a+b, 0) / drifts.length;
-    if (avgDrift > 1.5) {
-      insights.push({
-        type: 'warning', icon: '🌙',
-        title: 'Overnight rise detected',
-        body: `BG rises avg +${avgDrift.toFixed(1)} mg/dL per 5 min during overnight hours. May indicate basal rate is too low. Consider discussing a +0.1 U/h basal increase with your endo.`,
-        action: 'Review Basal Rate'
-      });
-    } else if (avgDrift < -1.5) {
-      insights.push({
-        type: 'warning', icon: '🌙',
-        title: 'Overnight drop detected',
-        body: `BG drops avg ${avgDrift.toFixed(1)} mg/dL per 5 min overnight. Consider a +10g bedtime snack or slight basal reduction.`,
-        action: 'Consider Snack / Basal ↓'
-      });
-    } else {
-      insights.push({
-        type: 'success', icon: '✅',
-        title: 'Overnight basal looks stable',
-        body: `BG is relatively flat overnight (avg drift ${avgDrift.toFixed(1)} mg/dL per reading). Good basal rate!`,
-        action: 'Keep current basal'
-      });
-    }
+  if (validCount > 0) {
+    var avgRatio = (totalRatios / validCount).toFixed(1);
+    var carbs = parseFloat(document.getElementById('carbInput').value) || 50;
+    var dose = (carbs / avgRatio).toFixed(1);
+    document.getElementById('avgRatio').textContent = avgRatio;
+    document.getElementById('recCarbs').textContent = carbs;
+    document.getElementById('recDose').textContent = dose;
+    document.getElementById('recommendNote').textContent = 'מבוסס על ' + validCount + ' ארוחות בהיסטוריה שלך';
+    document.getElementById('recommendBox').classList.add('show');
   }
-
-  // 2. Post-meal I:C analysis
-  const mealTreats = treatments.filter(t => t.carbs && t.carbs > 10);
-  const postMealErrors = [];
-  for (const meal of mealTreats) {
-    const mealTime = new Date(meal.created_at).getTime();
-    const target = S.profile.target || 100;
-    const pre = sgv.find(e => Math.abs(e.date - mealTime) < 15 * 60000);
-    const post2h = sgv.find(e => e.date > mealTime + 100 * 60000 && e.date < mealTime + 140 * 60000);
-    if (pre && post2h) {
-      postMealErrors.push(post2h.sgv - target);
-    }
-  }
-  if (postMealErrors.length >= 3) {
-    const avg = postMealErrors.reduce((a,b) => a+b, 0) / postMealErrors.length;
-    if (avg > 50) {
-      insights.push({
-        type: 'warning', icon: '🍽️',
-        title: 'Post-meal BG running high',
-        body: `2h post-meal BG averages +${avg.toFixed(0)} mg/dL above target across ${postMealErrors.length} meals. I:C ratio may need strengthening (lower ratio = more insulin per carb). Current: 1:${S.profile.ic?.toFixed(0) || '?'}.`,
-        action: `Try I:C 1:${Math.max(1, (S.profile.ic || 10) - 1)}`
-      });
-    } else if (avg < -30) {
-      insights.push({
-        type: 'warning', icon: '🍽️',
-        title: 'Post-meal BG running low',
-        body: `2h post-meal BG averages ${avg.toFixed(0)} mg/dL below target. I:C may be too aggressive. Consider a higher ratio.`,
-        action: `Try I:C 1:${(S.profile.ic || 10) + 1}`
-      });
-    } else {
-      insights.push({
-        type: 'success', icon: '🍽️',
-        title: 'I:C ratio looks good',
-        body: `Post-meal BG averages ${avg.toFixed(0)} mg/dL from target across ${postMealErrors.length} meals. Your carb ratio is well-calibrated!`,
-        action: 'Keep current I:C'
-      });
-    }
-  }
-
-  // 3. TIR overview
-  const lo = sgv.filter(e => e.sgv < 70).length;
-  const ok = sgv.filter(e => e.sgv >= 70 && e.sgv <= 180).length;
-  const hi = sgv.filter(e => e.sgv > 180).length;
-  const t = sgv.length;
-  const tir = Math.round(ok/t*100);
-  const tirType = tir >= 70 ? 'success' : tir >= 50 ? 'info' : 'warning';
-  insights.push({
-    type: tirType, icon: '📊',
-    title: `48h Time in Range: ${tir}%`,
-    body: `Low: ${Math.round(lo/t*100)}% | In Range: ${tir}% | High: ${Math.round(hi/t*100)}%. ${tir >= 70 ? 'Great work! 🎉' : 'Target is >70% TIR.'}`,
-    action: tir >= 70 ? 'Keep it up!' : 'Discuss with endo'
+  var html = '<table class="treatments-table"><thead><tr><th>תאריך</th><th>פחמימות</th><th>אינסולין</th><th>יחס</th></tr></thead><tbody>';
+  data.forEach(function(t) {
+    var d = new Date(t.created_at || t.createdAt);
+    var ds = d.toLocaleDateString('he-IL', {day:'2-digit', month:'2-digit', year:'2-digit'});
+    var carbs = t.carbs || '--';
+    var insulin = t.insulin ? t.insulin.toFixed(1) : '--';
+    var ratio = (t.carbs && t.insulin) ? (t.carbs / t.insulin).toFixed(1) : '--';
+    html += '<tr><td style="font-size:.8rem;color:var(--muted)">' + ds + '</td><td><span class="carb-badge">' + carbs + 'ג\'</span></td><td><span class="insulin-badge">' + insulin + 'U</span></td><td style="color:var(--accent3);font-weight:700">' + ratio + '</td></tr>';
   });
+  html += '</tbody></table>';
+  container.innerHTML = html;
+}
 
-  // 4. Hypo check
-  const hypos = sgv.filter(e => e.sgv < 70).length;
-  if (hypos > 3) {
-    insights.push({
-      type: 'warning', icon: '⚠️',
-      title: `${hypos} low readings in 48h`,
-      body: 'Frequent lows detected. Consider reducing basal or adjusting ISF. Make sure to have fast carbs accessible.',
-      action: 'Review with endo urgently'
-    });
+function switchTab(name, el) {
+  document.querySelectorAll('.tab-content').forEach(function(t) { t.classList.remove('active'); });
+  document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+  document.getElementById('tab-' + name).classList.add('active');
+  el.classList.add('active');
+  if (name === 'live') loadLiveData();
+}
+
+window.addEventListener('DOMContentLoaded', function() {
+  var s = getSettings();
+  document.getElementById('ratioInput').value = s.defaultRatio || 10;
+  document.getElementById('searchInput').addEventListener('keyup', function(e) {
+    if (e.key === 'Enter') searchTreatments();
+  });
+  if (!s.nsUrl || !s.nsSecret) {
+    setTimeout(openSettings, 600);
+  } else {
+    loadLiveData();
+    setInterval(loadLiveData, 5 * 60 * 1000);
   }
-
-  return insights;
-}
-
-function renderInsights(insights) {
-  document.getElementById('insightsList').innerHTML = insights.map(i => `
-    <div class="insight-card ${i.type}">
-      <div class="insight-header">
-        <div class="insight-icon">${i.icon}</div>
-        <div class="insight-title">${i.title}</div>
-      </div>
-      <div class="insight-body">${i.body}</div>
-      ${i.action ? `<div class="insight-action">${i.action}</div>` : ''}
-    </div>
-  `).join('');
-}
-
-// ═══════════════════════════════════════════
-//  UI HELPERS
-// ═══════════════════════════════════════════
-function showPanel(id, tabEl) {
-  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  document.getElementById('panel-' + id).classList.add('active');
-  if (tabEl) tabEl.classList.add('active');
-
-  if (id === 'history') renderHistory();
-  if (id === 'insights') runInsights();
-}
-
-function setNav(id) {
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  document.getElementById('nav-' + id)?.classList.add('active');
-}
-
-function setConnected(ok) {
-  S.ns.connected = ok;
-  const dot = document.getElementById('connDot');
-  dot.className = 'connection-dot ' + (ok ? 'ok' : 'error');
-}
-
-function showAlert(msg, type = 'info') {
-  const area = document.getElementById('alert-area');
-  const id = 'alert-' + Date.now();
-  const div = document.createElement('div');
-  div.className = `alert ${type}`;
-  div.id = id;
-  div.innerHTML = `<span>${msg}</span>`;
-  area.prepend(div);
-  setTimeout(() => div.remove(), 4000);
-}
-
-// ═══════════════════════════════════════════
-//  START
-// ═══════════════════════════════════════════
-init();
-
-// Auto-recalc when page loads with NS data
-window.addEventListener('resize', () => {
-  if (S.sgvHistory.length) renderChart(S.sgvHistory);
 });
-</script>
-
-<!-- PWA manifest inline -->
-<script>
-  // Register service worker for offline
-  if ('serviceWorker' in navigator) {
-    const sw = `
-self.addEventListener('install', e => e.waitUntil(
-  caches.open('diabuddy-v1').then(c => c.addAll(['/']))
-));
-self.addEventListener('fetch', e => e.respondWith(
-  caches.match(e.request).then(r => r || fetch(e.request))
-));`;
-    const blob = new Blob([sw], { type: 'application/javascript' });
-    navigator.serviceWorker.register(URL.createObjectURL(blob));
-  }
 </script>
 </body>
 </html>
